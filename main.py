@@ -6,7 +6,7 @@ import os
 app = Flask(__name__)
 
 # Example Kenya food price API
-GOV_PRICES_URL = "https://www.knbs.or.ke/food-prices-json"
+GOV_PRICES_URL = "https://api.foodprices.vam.wfp.org/v1/prices?country_code=KEN"
 
 def get_price(item):
     try:
