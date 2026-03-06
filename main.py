@@ -1,33 +1,44 @@
 from flask import Flask, request
 from twilio.twiml.messaging_response import MessagingResponse
-import json
 
 app = Flask(__name__)
 
-# Load price data
-with open("prices.json") as f:
-    prices = json.load(f)
-
-@app.route("/whatsapp", methods=['POST'])
-def whatsapp_reply():
-    incoming_msg = request.form.get('Body', '').lower().strip()
+@app.route("/whatsapp", methods=["POST"])
+def whatsapp():
+    # Get the incoming message text
+    msg = request.form.get("Body", "").lower()
     resp = MessagingResponse()
 
-    if incoming_msg.startswith("price"):
-        parts = incoming_msg.split(" ", 1)
-        if len(parts) < 2:
-            resp.message("Send 'PRICE <item>' to get the current price.")
-        else:
-            item = parts[1]
-            price = prices.get(item)
-            if price:
-                resp.message(f"{item.title()} – KSh {price} (average)")
-            else:
-                resp.message(f"Sorry, {item} not found.")
+    # Help menu
+    if "help" in msg:
+        resp.message(
+            "🇰🇪 Household Price Tracker KE\n\n"
+            "Available commands:\n"
+            "price rice\n"
+            "price sugar\n"
+            "price cooking oil\n"
+            "price salt\n\n"
+            "Example:\n"
+            "Send: price rice"
+        )
+
+    # Price commands
+    elif "price rice" in msg:
+        resp.message("Rice average price in Kenya: KSh 180 per 2kg")
+    elif "price sugar" in msg:
+        resp.message("Sugar average price in Kenya: KSh 200 per 2kg")
+    elif "price cooking oil" in msg:
+        resp.message("Cooking oil average price: KSh 350 per litre")
+    elif "price salt" in msg:
+        resp.message("Salt average price in Kenya: KSh 50 per 1kg")
+
+    # Default response for unknown messages
     else:
-        resp.message("Send 'PRICE <item>' to get the current price.")
+        resp.message("Type *help* to see available commands.")
 
     return str(resp)
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    import os
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
