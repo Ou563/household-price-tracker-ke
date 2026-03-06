@@ -1,3 +1,4 @@
-Flask
-twilio
+flask
 requests
+twilio
+gunicorn
