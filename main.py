@@ -1,15 +1,30 @@
 from flask import Flask, request
 from twilio.twiml.messaging_response import MessagingResponse
+import requests
 
 app = Flask(__name__)
 
+# Example: KNBS API or JSON endpoint
+GOV_PRICES_URL = "https://www.knbs.or.ke/food-prices-json"
+
+def get_price(item):
+    try:
+        response = requests.get(GOV_PRICES_URL)
+        data = response.json()  # Assuming JSON
+        # Example JSON structure: {"rice": 185, "sugar": 200, "cooking_oil": 350, "salt": 50}
+        price = data.get(item)
+        if price:
+            return f"{item.capitalize()} average price in Kenya: KSh {price}"
+        else:
+            return "Sorry, price not found."
+    except Exception as e:
+        return "Unable to fetch prices at the moment."
+
 @app.route("/whatsapp", methods=["POST"])
 def whatsapp():
-    # Get the incoming message text
     msg = request.form.get("Body", "").lower()
     resp = MessagingResponse()
 
-    # Help menu
     if "help" in msg:
         resp.message(
             "🇰🇪 Household Price Tracker KE\n\n"
@@ -21,18 +36,9 @@ def whatsapp():
             "Example:\n"
             "Send: price rice"
         )
-
-    # Price commands
-    elif "price rice" in msg:
-        resp.message("Rice average price in Kenya: KSh 180 per 2kg")
-    elif "price sugar" in msg:
-        resp.message("Sugar average price in Kenya: KSh 200 per 2kg")
-    elif "price cooking oil" in msg:
-        resp.message("Cooking oil average price: KSh 350 per litre")
-    elif "price salt" in msg:
-        resp.message("Salt average price in Kenya: KSh 50 per 1kg")
-
-    # Default response for unknown messages
+    elif "price" in msg:
+        item = msg.replace("price ", "").strip()
+        resp.message(get_price(item))
     else:
         resp.message("Type *help* to see available commands.")
 
