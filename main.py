@@ -1,30 +1,34 @@
 from flask import Flask, request
 from twilio.twiml.messaging_response import MessagingResponse
-import requests
+import json
 import os
 
 app = Flask(__name__)
 
-# Example Kenya food price API
-GOV_PRICES_URL = "https://api.foodprices.vam.wfp.org/v1/prices?country_code=KEN"
+# Household items list
+HOUSEHOLD_ITEMS = [
+    "salt", "sugar", "cooking_oil", "rice", "maize_flour", "milk", "soap",
+    "matches", "eggs", "tea", "bread", "vegetable_oil", "bread_rolls",
+    "beans", "water", "porridge_flour", "cooking_salt", "soda", "soap_powder"
+]
+
+# Path to your local JSON prices
+LOCAL_JSON = "prices.json"
 
 def get_price(item):
+    item = item.lower().replace(" ", "_")
+
+    # Read local JSON
     try:
-        response = requests.get(GOV_PRICES_URL)
-        data = response.json()
-
-        # Convert spaces to underscores
-        item = item.replace(" ", "_")
-
-        price = data.get(item)
-
-        if price:
-            return f"{item.replace('_',' ').title()} average price: KES {price}"
-        else:
-            return "Sorry, price not found."
-
-    except Exception:
+        with open(LOCAL_JSON) as f:
+            data = json.load(f)
+        if item in data:
+            return f"{item.replace('_',' ').title()} price: KES {data[item]}"
+    except Exception as e:
+        print("Error reading prices.json:", e)
         return "Unable to fetch prices at the moment."
+
+    return "Sorry, price not found."
 
 @app.route("/whatsapp", methods=["POST"])
 def whatsapp():
@@ -32,16 +36,11 @@ def whatsapp():
     resp = MessagingResponse()
 
     if "help" in msg:
-        resp.message(
-            "Household Price Tracker KE\n\n"
-            "Available commands:\n"
-            "price rice\n"
-            "price sugar\n"
-            "price cooking oil\n"
-            "price salt\n\n"
-            "Example:\n"
-            "Send: price rice"
-        )
+        help_text = "Household Price Tracker KE\n\nAvailable commands:\n"
+        for item in HOUSEHOLD_ITEMS:
+            help_text += f"price {item}\n"
+        help_text += "\nExample:\nSend: price rice"
+        resp.message(help_text)
 
     elif "price" in msg:
         item = msg.replace("price", "").strip()
